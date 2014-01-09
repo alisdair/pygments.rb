@@ -17,7 +17,7 @@ from pygments.token import Text, Name, Number, String, Comment, Punctuation, \
      Other, Keyword, Operator
 
 __all__ = ['GasLexer', 'ObjdumpLexer','DObjdumpLexer', 'CppObjdumpLexer',
-           'CObjdumpLexer', 'LlvmLexer', 'NasmLexer', 'Ca65Lexer']
+           'CObjdumpLexer', 'LlvmLexer', 'NasmLexer', 'Ca65Lexer', 'ArmLexer']
 
 
 class GasLexer(RegexLexer):
@@ -396,3 +396,72 @@ class Ca65Lexer(RegexLexer):
         # comments in GAS start with "#"
         if re.match(r'^\s*;', text, re.MULTILINE):
             return 0.9
+
+class ArmLexer(RegexLexer):
+    """
+    For ARM assembly code.
+    """
+    name = 'ARM'
+    aliases = ['arm']
+    filenames = ['*.armasm', '*.s.arm']
+    mimetypes = ['text/x-armasm']
+
+    identifier = r'[a-zA-Z$._?][a-zA-Z0-9$._?#@~]*'
+    hexn = r'&[0-9a-fA-F]+'
+    decn = r'[0-9]+'
+    string = r'"(\\"|[^"\n])*"|' + r"'(\\'|[^'\n])*'|" + r"`(\\`|[^`\n])*`"
+    declkw = r'(?:EQU|DC)[BWDSZ]'
+    register = (r'R1[0-5]|R[0-9]|A[1-4]|V[1-6]|'
+                r'SL|FP|IP|SP|LR|PC')
+
+    flags = re.IGNORECASE | re.MULTILINE
+    tokens = {
+        'root': [
+            include('whitespace'),
+            include('keyword'),
+            ('\.' + identifier, Name.Label),
+            (declkw, Keyword.Declaration, 'instruction-args'),
+            ('keyword', Name.Function, 'instruction-args'),
+            (r'[\r\n]+', Text)
+        ],
+        'instruction-args': [
+            (r'(LSL|ASL|LSR|ASR|ROR|RRX)', Keyword),
+            (string, String),
+            (hexn, Number.Hex),
+            (decn, Number.Integer),
+            ('#' + hexn, Number.Hex),
+            ('#' + decn, Number.Integer),
+            include('punctuation'),
+            (register, Name.Builtin),
+            ('!', Operator),
+            ('keyword', Name.Function),
+            (identifier, Name.Variable),
+            (r'[\r\n]+', Text, '#pop'),
+            include('whitespace')
+        ],
+        'preproc': [
+            (r'[^;\n]+', Comment.Preproc),
+            (r';.*?\n', Comment.Single, '#pop'),
+            (r'\n', Comment.Preproc, '#pop'),
+        ],
+        'whitespace': [
+            (r'\n', Text),
+            (r'[ \t]+', Text),
+            (r';.*', Comment.Single)
+        ],
+        'punctuation': [
+            (r'[{},():\[\]-]+', Punctuation)
+        ],
+        'keyword': [
+            (r'((?:ADC|ADD|AND|B|BL|BIC|CMN|CMP|EOR|LDR|LDRB|MLA|MOV|MUL'
+             r'|MVN|ORR|RSB|RSC|SBC|STR/STRB|SUB|SWI|SWP|TEQ|TST)'
+             r'(?:EQ|NE|VS|VC|HI|LS|PL|MI|CS|CC|GE|GT|LE|LT|AL|NV)?'
+             r'(?:S)?)\b',
+             Keyword, 'instruction-args'),
+            (r'((?:LDR|STR)B?T?)\b', Keyword, 'instruction-args'),
+            (r'((?:LDM|STM)(?:IA|IB|DA|DB|FD|FA|ED|EA)'
+             r'(?:EQ|NE|VS|VC|HI|LS|PL|MI|CS|CC|GE|GT|LE|LT)?'
+             r'(?:S)?)\b', Keyword, 'instruction-args')
+        ]
+    }
+

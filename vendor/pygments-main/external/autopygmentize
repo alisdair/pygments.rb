@@ -18,6 +18,7 @@ if [ "$lexer" = "text" ]; then
       text/html) lexer=html;;
       text/troff) lexer=nroff;;
       text/x-asm) lexer=nasm;;
+      text/x-armasm) lexer=arm;;
       text/x-awk) lexer=awk;;
       text/x-c) lexer=c;;
       text/x-c++) lexer=cpp;;
